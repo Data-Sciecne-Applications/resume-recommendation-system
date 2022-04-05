@@ -7,11 +7,13 @@ from sklearn.cluster import KMeans
 from kneed import KneeLocator
 import plotly.graph_objects as go
 from tkinter.tix import Tree
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import cross_val_score, train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import confusion_matrix, classification_report
-
+import time
+import plotly.io as pio
+from sklearn.pipeline import Pipeline
 
 def train_val_test_split(x, y, train_size, val_size, test_size, random_state=41):
     x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=test_size, random_state=random_state)
@@ -84,11 +86,12 @@ def draw_confusion_matrix(cf_matrix, labels):
     plt.ylabel('Actal Values')
     plt.show()
 
-def get_classification_report(unique_labels, y_test, pred, zero_division=0,has_return=True):
+def get_classification_report(unique_labels, y_test, pred, zero_division=0,has_return=True, has_pic=True):
     cf_matrix = confusion_matrix(y_test, pred)
-    draw_confusion_matrix(cf_matrix, unique_labels)
     cf_report = classification_report(y_test, pred, zero_division=zero_division)
-    print(cf_report)
+    if has_pic:
+        draw_confusion_matrix(cf_matrix, unique_labels)
+        print(cf_report)
     if not has_return:
         return cf_report
 
@@ -144,3 +147,30 @@ def elbow_method(data, number):
                       height=500, 
                       width=800)
     fig.show()
+
+
+def get_classification_model_performance(estimator, transformer, x_train, x_test, x_val, y_train, y_test, y_val, n=10)-> dict():
+    start = time.time()
+    clf = Pipeline([
+        ('tf', transformer),
+        ('clf', estimator)
+    ])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    done = time.time()
+    accuracy = np.mean(pred == y_test)
+    cross_val = cross_val_score(estimator=clf, X=x_val, y=y_val, cv=n)
+    print(f"accuracy: {accuracy}, 10-fold: {np.mean(cross_val)}")
+
+    cf_report = classification_report(y_test, pred, zero_division=0, output_dict=True)
+
+    performance = dict()
+    performance['estimator'] = estimator
+    performance['accuracy'] = accuracy
+    performance['cv10'] = np.mean(cross_val)
+    performance['precision'] = cf_report['macro avg']['precision']
+    performance['recall'] = cf_report['macro avg']['recall']
+    performance['f1_score'] = cf_report['macro avg']['f1-score']
+    performance['time_cost'] = done - start
+
+    return performance
