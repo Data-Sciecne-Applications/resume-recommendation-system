@@ -7,7 +7,7 @@ def cal_cosine_similarity(term_matrix):
     return cosine_similarity(term_matrix, term_matrix)
 
 def cal_jaccard_score(term_matrix):
-    return jaccard_score(term_matrix, term_matrix)
+    return jaccard_score(term_matrix, term_matrix, average='samples')
 
-def cal_person_score(term_matrix):
+def cal_pearson_score(term_matrix):
     return np.corrcoef(term_matrix, term_matrix)
